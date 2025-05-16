@@ -1,5 +1,7 @@
 # dv-plot
 
+![ADANIGREEN](https://github.com/user-attachments/assets/52d9ff33-185e-414a-ba71-b3d13b202ebb)
+
 A Python tool to fetch, analyze, and visualize daily volatility (dv) for all F&O stocks from the NSE India website. For each stock, it calculates daily volatility over the past year and generates a histogram plot, saving the results in a date-specific output folder.
 
 ## Features

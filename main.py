@@ -2,7 +2,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import os
-from nsepython import fnolist, equity_history
+from nsepython2 import fnolist, equity_history
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
+
+# Suppress only the InsecureRequestWarning
+urllib3.disable_warnings(InsecureRequestWarning)
 
 
 # Shared helper: fetch and clean data
@@ -39,19 +44,40 @@ def plot_volatility_histogram(data, col, stock, output_path, title):
     if col not in data.columns or data[col].dropna().empty:
         print(f"No '{col}' values to plot for {stock}. Skipping.")
         return
+
     plt.figure(figsize=(12, 7))
-    n_bins = min(50, max(10, int(len(data[col]) ** 0.5)))
-    plt.hist(data[col], bins=n_bins, edgecolor="black", alpha=0.75, color="deepskyblue")
-    plt.title(title, fontsize=15, fontweight="bold")
-    plt.xlabel(col, fontsize=13)
-    plt.ylabel("Frequency", fontsize=13)
-    plt.grid(axis="y", linestyle=":", alpha=0.6)
-    plt.xticks(fontsize=11)
-    plt.yticks(fontsize=11)
-    # Stats box
+    
+    # Calculate statistics
     mean_val = data[col].mean()
     std_val = data[col].std()
     median_val = data[col].median()
+    min_val = data[col].min()
+    max_val = data[col].max()
+    
+    # Calculate number of standard deviations needed on each side
+    n_std_left = abs(int((min_val - mean_val) / std_val)) + 1
+    n_std_right = abs(int((max_val - mean_val) / std_val)) + 1
+    
+    # Create bins centered on mean, with width = 1 standard deviation
+    bins = [mean_val + (i * std_val) for i in range(-n_std_left, n_std_right + 1)]
+    
+    # Plot histogram
+    plt.hist(data[col], bins=bins, edgecolor="black", alpha=0.75, color="deepskyblue")
+    
+    # Set x-axis ticks at each standard deviation
+    xticks = [mean_val + (i * std_val) for i in range(-n_std_left, n_std_right + 1)]
+    xtick_labels = [f"{x:.1f}" for x in xticks]
+    plt.xticks(xticks, xtick_labels, rotation=45)
+    
+    # Add grid for better readability
+    plt.grid(axis="both", linestyle=":", alpha=0.6)
+    
+    # Labels and title
+    plt.title(title, fontsize=15, fontweight="bold")
+    plt.xlabel(col, fontsize=13)
+    plt.ylabel("Frequency", fontsize=13)
+    
+    # Stats box
     stats_text = (
         f"Mean: {mean_val:.4f}\nStd Dev: {std_val:.4f}\nMedian: {median_val:.4f}"
     )
@@ -64,7 +90,10 @@ def plot_volatility_histogram(data, col, stock, output_path, title):
         verticalalignment="top",
         bbox=dict(boxstyle="round,pad=0.5", fc="wheat", alpha=0.5),
     )
+    
+    # Adjust layout to prevent label cutoff
     plt.tight_layout()
+    
     try:
         plt.savefig(output_path)
         print(f"Histogram saved as {output_path}")
